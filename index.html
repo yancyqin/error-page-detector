@@ -12,15 +12,20 @@
 <body>
     <h1>Error Page Detector</h1>
     <div>
-        <input type="file" id="normalImg" multiple accept="image/*">
-        <label for="normalImg">Select images for normal pages</label><br>
-        <input type="file" id="errorImg" multiple accept="image/*">
-        <label for="errorImg">Select images for error pages</label><br>
-        <button id="trainButton">Train</button><br><br>
+        <h1> Upload a screenshot of the page, and detect if it's an error page</h1>
         <input type="file" id="uploadImage" accept="image/*">
-        <label for="uploadImage">Upload image to predict</label>
-        <button id="predictButton">Predict</button>
+        <label for="uploadImage">Upload image</label>
+        <button id="predictButton">Detect</button>
         <div id="result"></div>
+        <div id="canvasContainer"></div>
+
+        <hr class="rounded">
+        <h1> or Train your own model</h1>
+        <input type="file" id="normalImg" multiple accept="image/*">
+        <label for="normalImg">Select screenshots for normal pages</label><br>
+        <input type="file" id="errorImg" multiple accept="image/*">
+        <label for="errorImg">Select screenshots for error pages</label><br>
+        <button id="trainButton">Train</button><br><br>
         <button id="saveModelButton">Save Model</button>
     </div>
 
@@ -29,8 +34,14 @@
         let customModel;
         let classifier;
         let loss;
+        let img
 
         function setup() {
+            let canvas = createCanvas(800, 600); // Create a canvas
+            canvas.parent('canvasContainer');
+            let fileInput = select('#uploadImage'); // Select the file input element
+            fileInput.changed(handleImageUpload); // Set up a listener for file input changes
+
             // // Load the MobileNet model and extract features
             featureExtractor = ml5.featureExtractor('MobileNet', modelReady);
 
@@ -69,7 +80,13 @@
                                 if (err) {
                                     console.error(err);
                                 } else {
-                                    document.getElementById('result').innerText = `Prediction: ${result[0].label} with confidence ${result[0].confidence}`;
+                                    const resultDiv = select('#result');
+                                    if (result[0].label == 'Normal Page') {
+                                        resultDiv.html(`Prediction: <span style="color: green;">${result[0].label}</span> with confidence ${result[0].confidence}`);
+                                    } else {
+
+                                        resultDiv.html(`Prediction: <span style="color: red;">${result[0].label}</span> with confidence ${result[0].confidence}`);
+                                    }
                                 }
                             });
                         };
@@ -108,6 +125,26 @@
                 };
                 reader.readAsDataURL(file);
             });
+        }
+
+        function draw() {
+            background(220); // Clear the canvas
+
+            if (img) { // If an image has been loaded
+                image(img, 0, 0, width, height); // Display the image on the canvas
+            }
+        }
+
+        function handleImageUpload(event) {
+            let file = event.target.files[0]; // Get the selected file
+
+            if (file && file.type.startsWith('image/')) {
+                img = loadImage(URL.createObjectURL(file), () => {
+                    console.log("Image loaded successfully");
+                }, () => {
+                    console.error("Error loading image");
+                });
+            }
         }
 
         // Wait until the DOM is fully loaded before running the setup function
