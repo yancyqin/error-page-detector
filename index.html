@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Error Page Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.dom.js"></script>
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+</head>
+
+<body>
+    <h1>Error Page Detector</h1>
+    <div>
+        <input type="file" id="normalImg" multiple accept="image/*">
+        <label for="normalImg">Select images for normal pages</label><br>
+        <input type="file" id="errorImg" multiple accept="image/*">
+        <label for="errorImg">Select images for error pages</label><br>
+        <button id="trainButton">Train</button><br><br>
+        <input type="file" id="uploadImage" accept="image/*">
+        <label for="uploadImage">Upload image to predict</label>
+        <button id="predictButton">Predict</button>
+        <div id="result"></div>
+        <button id="saveModelButton">Save Model</button>
+    </div>
+
+    <script>
+        let featureExtractor;
+        let customModel;
+        let classifier;
+        let loss;
+
+        function setup() {
+            // // Load the MobileNet model and extract features
+            featureExtractor = ml5.featureExtractor('MobileNet', modelReady);
+
+            classifier = featureExtractor.classification();
+
+            // Event listeners for file inputs
+            document.getElementById('normalImg').addEventListener('change', function (event) {
+                handleFiles(event.target.files, 'Normal Page');
+            });
+            document.getElementById('errorImg').addEventListener('change', function (event) {
+                handleFiles(event.target.files, 'Error Page');
+            });
+
+            // Train button
+            document.getElementById('trainButton').addEventListener('click', function () {
+                classifier.train(function (lossValue) {
+                    if (lossValue) {
+                        loss = lossValue;
+                        console.log('Loss: ' + loss);
+                    } else {
+                        console.log('Training Complete');
+                    }
+                });
+            });
+
+            // Predict button
+            document.getElementById('predictButton').addEventListener('click', function () {
+                const uploadImage = document.getElementById('uploadImage').files[0];
+                if (uploadImage) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = function () {
+                            classifier.classify(img, function (err, result) {
+                                if (err) {
+                                    console.error(err);
+                                } else {
+                                    document.getElementById('result').innerText = `Prediction: ${result[0].label} with confidence ${result[0].confidence}`;
+                                }
+                            });
+                        };
+                    };
+                    reader.readAsDataURL(uploadImage);
+                } else {
+                    alert('Please upload an image to predict.');
+                }
+            });
+
+            // Save Model button
+            document.getElementById('saveModelButton').addEventListener('click', function () {
+                classifier.save("model.Json");
+                console.log('Model Saved');
+            });
+        }
+
+        function modelReady() {
+            console.log('Model Loaded');
+            classifier.load("model.json", customModelLoaded)
+        }
+
+        function customModelLoaded() {
+            console.log('Custom model loaded!');
+        }
+
+        function handleFiles(files, label) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = function () {
+                        classifier.addImage(img, label);
+                    };
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Wait until the DOM is fully loaded before running the setup function
+        window.addEventListener('load', () => {
+            setup();
+        });
+    </script>
+</body>
+
+</html>
