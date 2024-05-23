@@ -1,5 +1,5 @@
 # Error Page Detector
-[**ML5 Online Demo**](https://yancyqin.github.io/errorPageDetector/)
+[**Online Demo**](https://yancyqin.github.io/errorPageDetector/)
 
 ## User Guide
 ### ML5 Javascript Version
